@@ -30,7 +30,7 @@
             } else {
                 echo '{"status":"error","message":"Missing parameter!"}';
             }
-            break;
+            break; 
             
         case 'init':
             if (isset($_GET['path'])) {

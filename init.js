@@ -50,22 +50,21 @@
 
 		init: function() {
 			var _this = this;
-			$.getScript(this.path + "network_graph.js");
-			$.getScript(this.path + "raphael.min.js");
+
 			//Check if directories has git repo
 			amplify.subscribe('filemanager.onIndex', function(obj) {
 				setTimeout(function() {
 					$.each(obj.files, function(i, item) {
 						if (_this.basename(item.name) == '.git') {
 							$('[data-path="' + _this.dirname(item.path) + '"]').addClass('repo');
-							// } else if (item.type == 'directory') {
+						} else if (item.type == 'directory') {
 							// Deeper inspect
-							// $.getJSON(_this.path + 'controller.php?action=checkRepo&path=' + item.path, function(result) {
-							// if (result.status) {
-							// $('[data-path="' + item.path + '"]').addClass('repo');
+							$.getJSON(_this.path + 'controller.php?action=checkRepo&path=' + item.path, function(result) {
+								if (result.status) {
+									$('[data-path="' + _this.dirname(item.path) + '"]').addClass('repo');
 
-							// }
-							// });
+								}
+							});
 						}
 					});
 
@@ -115,9 +114,7 @@
 							$('#context-menu').append('<a class="file-only code_git" onclick="codiad.CodeGit.contextMenuDiff($(\'#context-menu\').attr(\'data-path\'), \'' + path + '\');"><span class="icon-flow-branch"></span>Git Diff</a>');
 							$('#context-menu').append('<a class="file-only code_git" onclick="codiad.CodeGit.blame($(\'#context-menu\').attr(\'data-path\'), \'' + path + '\');"><span class="icon-flow-branch"></span>Git Blame</a>');
 							$('#context-menu').append('<a class="file-only code_git" onclick="codiad.CodeGit.history($(\'#context-menu\').attr(\'data-path\'), \'' + path + '\');"><span class="icon-flow-branch"></span>Git History</a>');
-							//Git rename
-							$('#context-menu a[onclick="codiad.filemanager.renameNode($(\'#context-menu\').attr(\'data-path\'));"]')
-								.attr("onclick", "codiad.CodeGit.rename($(\'#context-menu\').attr(\'data-path\'))");
+
 							//Init Submodules
 							if (_this.basename(file) == '.gitmodules') {
 								$('#context-menu').append('<a class="directory-only code_git" onclick="codiad.CodeGit.initSubmodule(\'' + _this.dirname(file) + '\', $(\'#context-menu\').attr(\'data-path\'));"><span class="icon-flow-branch"></span>Init Submodule</a>');
@@ -248,7 +245,7 @@
 
 		showSidebarDialog: function() {
 			if (!$('#project-root').hasClass('repo')) {
-				codiad.message.error('Project root has no repository. Use the context menu!');
+				codiad.toast.error('Project root has no repository. Use the context menu!');
 				return;
 			}
 			codiad.CodeGit.showDialog('overview', $('#project-root').attr('data-path'));
@@ -265,7 +262,7 @@
 			$.getJSON(this.path + 'controller.php?action=getSettings&path=' + path, function(data) {
 				if (data.status == "success") {
 					if (data.data.email === "") {
-						codiad.message.notice("Please tell git who you are:");
+						codiad.toast.notice("Please tell git who you are:");
 						_this.showDialog('userConfig', _this.location);
 					} else {
 						var files = [],
@@ -280,14 +277,14 @@
 						_this.showDialog('commit', _this.location);
 					}
 				} else {
-					codiad.message.error(data.message);
+					codiad.toast.error(data.message);
 				}
 			});
 		},
 
 		gitInit: function(path) {
 			$.getJSON(this.path + 'controller.php?action=init&path=' + path, function(result) {
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 				if (result.status == 'success') {
 					$('.directory[data-path="' + path + '"]').addClass('hasRepo');
 					codiad.filemanager.rescan(path);
@@ -311,7 +308,7 @@
 				codiad.modal.unload();
 				$.getJSON(_this.path + 'controller.php?action=clone&path=' + path + '&repo=' + repo + '&init_submodules=' + init_submodules, function(result) {
 					if (result.status == 'login_required') {
-						codiad.message.error(result.message);
+						codiad.toast.error(result.message);
 						_this.showDialog('login', _this.location);
 						_this.login = function() {
 							var username = $('.git_login_area #username').val();
@@ -323,14 +320,14 @@
 								},
 								function(result) {
 									result = JSON.parse(result);
-									codiad.message[result.status](result.message);
+									codiad.toast[result.status](result.message);
 									if (result.status == 'success') {
 										codiad.filemanager.rescan(path);
 									}
 								});
 						};
 					} else {
-						codiad.message[result.status](result.message);
+						codiad.toast[result.status](result.message);
 					}
 					if (result.status == 'success') {
 						codiad.filemanager.rescan(path);
@@ -346,7 +343,7 @@
 
 			$.getJSON(this.path + 'controller.php?action=diff&repo=' + repo + '&path=' + path, function(result) {
 				if (result.status != 'success') {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 					_this.showDialog('overview', repo);
 					return;
 				}
@@ -373,14 +370,14 @@
 			}, function(result) {
 				result = JSON.parse(result);
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				$.post(_this.path + 'controller.php?action=commit&path=' + path, {
 					message: message
 				}, function(result) {
 					result = JSON.parse(result);
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 					_this.status(path);
 				});
 			});
@@ -400,7 +397,7 @@
 			this.showDialog('overview', this.location);
 			$.getJSON(this.path + 'controller.php?action=push&path=' + this.location + '&remote=' + remote + '&branch=' + branch, function(result) {
 				if (result.status == 'login_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('login', _this.location);
 					_this.login = function() {
 						var username = $('.git_login_area #username').val();
@@ -411,11 +408,11 @@
 							password: password
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 						});
 					};
 				} else if (result.status == 'passphrase_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('passphrase', _this.location);
 					_this.login = function() {
 						var passphrase = $('.git_login_area #passphrase').val();
@@ -424,11 +421,11 @@
 							passphrase: passphrase
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 						});
 					};
 				} else {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 				}
 			});
 		},
@@ -440,7 +437,7 @@
 			this.showDialog('overview', this.location);
 			$.getJSON(this.path + 'controller.php?action=pull&path=' + this.location + '&remote=' + remote + '&branch=' + branch, function(result) {
 				if (result.status == 'login_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('login', _this.location);
 					_this.login = function() {
 						var username = $('.git_login_area #username').val();
@@ -451,11 +448,11 @@
 							password: password
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 						});
 					};
 				} else if (result.status == 'passphrase_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('passphrase', _this.location);
 					_this.login = function() {
 						var passphrase = $('.git_login_area #passphrase').val();
@@ -464,11 +461,11 @@
 							passphrase: passphrase
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 						});
 					};
 				} else {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 				}
 			});
 		},
@@ -479,7 +476,7 @@
 			this.showDialog('overview', this.location);
 			$.getJSON(this.path + 'controller.php?action=fetch&path=' + this.location + '&remote=' + remote, function(result) {
 				if (result.status == 'login_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('login', _this.location);
 					_this.login = function() {
 						var username = $('.git_login_area #username').val();
@@ -490,11 +487,11 @@
 							password: password
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 						});
 					};
 				} else if (result.status == 'passphrase_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('passphrase', _this.location);
 					_this.login = function() {
 						var passphrase = $('.git_login_area #passphrase').val();
@@ -503,11 +500,11 @@
 							passphrase: passphrase
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 						});
 					};
 				} else {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 				}
 			});
 		},
@@ -516,9 +513,9 @@
 			var result = confirm("Are you sure to undo the changes on: " + path);
 			if (result) {
 				$.getJSON(this.path + 'controller.php?action=checkout&repo=' + repo + '&path=' + path, function(result) {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 					if (codiad.active.isOpen(repo + "/" + path)) {
-						codiad.message.notice("Reloading file after undoing changes");
+						codiad.toast.notice("Reloading file after undoing changes");
 						codiad.active.close(repo + "/" + path);
 						codiad.filemanager.openFile(repo + "/" + path);
 					}
@@ -532,7 +529,7 @@
 			var _this = this;
 			$.getJSON(this.path + 'controller.php?action=status&path=' + path, function(result) {
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				//Reset list
@@ -575,7 +572,7 @@
 			}
 			$.getJSON(this.path + 'controller.php?action=log&repo=' + this.encode(repo) + component, function(result) {
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				$.each(result.data, function(i, item) {
@@ -593,7 +590,7 @@
 			path = this.getPath(path);
 			$.getJSON(this.path + 'controller.php?action=getRemotes&path=' + path, function(result) {
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				$.each(result.data, function(i, item) {
@@ -617,7 +614,7 @@
 			var url = $('.git_new_remote_area #remote_url').val();
 			$.getJSON(this.path + 'controller.php?action=newRemote&path=' + path + '&name=' + name + '&url=' + url, function(result) {
 				_this.showDialog('overview', _this.location);
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 			});
 		},
 
@@ -628,7 +625,7 @@
 			var result = confirm("Are you sure to remove the remote: " + name);
 			if (result) {
 				$.getJSON(this.path + 'controller.php?action=removeRemote&path=' + path + '&name=' + name, function(result) {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 				});
 			}
 			this.showDialog('overview', this.location);
@@ -639,7 +636,7 @@
 			var name = $('#git_remote').text();
 			var newName = $('#git_new_name').val();
 			$.getJSON(this.path + 'controller.php?action=renameRemote&path=' + path + '&name=' + name + '&newName=' + newName, function(result) {
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 			});
 			this.showDialog('overview', this.location);
 		},
@@ -648,7 +645,7 @@
 			path = this.getPath(path);
 			$.getJSON(this.path + 'controller.php?action=getRemoteBranches&path=' + path, function(result) {
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				$.each(result.data.branches, function(i, item) {
@@ -664,7 +661,7 @@
 			var remoteName = $('#git_remote_branches').val();
 			var name = $('#git_new_branch').val();
 			$.getJSON(this.path + 'controller.php?action=checkoutRemote&path=' + path + '&name=' + name + '&remoteName=' + remoteName, function(result) {
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 			});
 			this.showDialog('remote', this.location);
 		},
@@ -673,7 +670,7 @@
 			path = this.getPath(path);
 			$.getJSON(this.path + 'controller.php?action=getBranches&path=' + path, function(result) {
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				$.each(result.data.branches, function(i, item) {
@@ -689,7 +686,7 @@
 			var name = $('.git_new_branch_area #branch_name').val();
 			$.getJSON(this.path + 'controller.php?action=newBranch&path=' + path + '&name=' + name, function(result) {
 				_this.showDialog('branches', _this.location);
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 			});
 		},
 
@@ -699,7 +696,7 @@
 			var result = confirm("Are you sure to remove the branch: " + name);
 			if (result) {
 				$.getJSON(this.path + 'controller.php?action=deleteBranch&path=' + path + '&name=' + name, function(result) {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 				});
 			}
 			this.showDialog('branches', this.location);
@@ -709,7 +706,7 @@
 			path = this.getPath(path);
 			var name = $('#git_branches').val();
 			$.getJSON(this.path + 'controller.php?action=checkoutBranch&path=' + path + '&name=' + name, function(result) {
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 			});
 			this.showDialog('overview', this.location);
 		},
@@ -719,7 +716,7 @@
 			var name = $('#git_branch').text();
 			var newName = $('#git_new_name').val();
 			$.getJSON(this.path + 'controller.php?action=renameBranch&path=' + path + '&name=' + name + '&newName=' + newName, function(result) {
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 			});
 			this.showDialog('overview', this.location);
 		},
@@ -731,7 +728,7 @@
 			var result = confirm("Are you sure to merge " + name + " into the current branch?");
 			if (result) {
 				$.getJSON(this.path + 'controller.php?action=merge&path=' + path + '&name=' + name, function(result) {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 					_this.status(_this.location);
 				});
 			}
@@ -770,7 +767,7 @@
 					codiad.modal.unload();
 					$.getJSON(_this.path + "controller.php?action=rename&path=" + path + "&old_name=" + old_name + "&new_name=" + newName, function(data) {
 						if (data.status != 'error') {
-							codiad.message.success(type.charAt(0)
+							codiad.toast.success(type.charAt(0)
 								.toUpperCase() + type.slice(1) + ' Renamed');
 							var node = $('#file-manager a[data-path="' + fPath + '"]');
 							// Change pathing and name for node
@@ -788,7 +785,7 @@
 							// Change any active files
 							codiad.active.rename(fPath, newPath);
 						} else {
-							codiad.message.error(data.message);
+							codiad.toast.error(data.message);
 							codiad.filemanager.renameNode(fPath);
 						}
 					});
@@ -817,7 +814,7 @@
 			_this.showDialog('overview', repo);
 			$.getJSON(this.path + 'controller.php?action=submodule&repo=' + repo + '&path=' + path + '&submodule=' + submodule, function(result) {
 				if (result.status == 'login_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('login', _this.location);
 					_this.login = function() {
 						var username = $('.git_login_area #username').val();
@@ -828,14 +825,14 @@
 							password: password
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 							if (result.status == 'success') {
 								codiad.filemanager.rescan(repo);
 							}
 						});
 					};
 				} else if (result.status == 'passphrase_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('passphrase', _this.location);
 					_this.login = function() {
 						var passphrase = $('.git_login_area #passphrase').val();
@@ -844,14 +841,14 @@
 							passphrase: passphrase
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 							if (result.status == 'success') {
 								codiad.filemanager.rescan(repo);
 							}
 						});
 					};
 				} else {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 					if (result.status == 'success') {
 						codiad.filemanager.rescan(repo);
 					}
@@ -864,7 +861,7 @@
 			path = path || this.location;
 			$.getJSON(this.path + 'controller.php?action=initSubmodule&path=' + path, function(result) {
 				if (result.status == 'login_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('login', _this.location);
 					_this.login = function() {
 						var username = $('.git_login_area #username').val();
@@ -875,14 +872,14 @@
 							password: password
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 							if (result.status == 'success') {
 								codiad.filemanager.rescan(path);
 							}
 						});
 					};
 				} else if (result.status == 'passphrase_required') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('passphrase', _this.location);
 					_this.login = function() {
 						var passphrase = $('.git_login_area #passphrase').val();
@@ -891,14 +888,14 @@
 							passphrase: passphrase
 						}, function(result) {
 							result = JSON.parse(result);
-							codiad.message[result.status](result.message);
+							codiad.toast[result.status](result.message);
 							if (result.status == 'success') {
 								codiad.filemanager.rescan(path);
 							}
 						});
 					};
 				} else {
-					codiad.message[result.status](result.message);
+					codiad.toast[result.status](result.message);
 					if (result.status == 'success') {
 						codiad.filemanager.rescan(path);
 					}
@@ -957,7 +954,7 @@
 			$.getJSON(this.path + 'controller.php?action=showCommit&path=' + this.encode(path) + '&commit=' + commit, function(result) {
 				$('.git_show_commit_area .hash').text(commit);
 				if (result.status != "success") {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('overview', path);
 				}
 				result.data = _this.renderDiff(result.data);
@@ -972,7 +969,7 @@
 			this.showDialog('blame', repo);
 			$.getJSON(this.path + 'controller.php?action=blame&repo=' + this.encode(repo) + '&path=' + this.encode(path), function(result) {
 				if (result.status != "success") {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					_this.showDialog('overview', repo);
 				}
 				$('.git_blame_area table thead th').text(path);
@@ -1070,7 +1067,7 @@
 				settings: JSON.stringify(settings)
 			}, function(result) {
 				result = JSON.parse(result);
-				codiad.message[result.status](result.message);
+				codiad.toast[result.status](result.message);
 				_this.showDialog('overview', _this.location);
 			});
 		},
@@ -1079,7 +1076,7 @@
 			path = this.getPath(path);
 			$.getJSON(this.path + 'controller.php?action=getSettings&path=' + path, function(result) {
 				if (result.status == 'error') {
-					codiad.message.error(result.message);
+					codiad.toast.error(result.message);
 					return;
 				}
 				var local = false;

@@ -1,0 +1,15 @@
+<div class="git_log_area">
+    <div class="content">
+        <ul class="git_log"></ul>
+    </div>
+	<script>
+		codiad.CodeGit.status();
+		$('.git_area_path').text(codiad.CodeGit.location);    
+        codiad.CodeGit.getBranches();
+        function renameBranch() {
+            codiad.CodeGit.name = $('#git_branches').val();
+            codiad.CodeGit.showDialog('renameBranch', codiad.CodeGit.location);
+        }
+        codiad.CodeGit.log();
+	</script>
+</div>
