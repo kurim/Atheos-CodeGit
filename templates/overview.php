@@ -7,7 +7,7 @@
 	<button onclick="codiad.CodeGit.showDialog('log', codiad.CodeGit.location); return false;">Log</button>
 	<button onclick="codiad.CodeGit.showDialog('push', codiad.CodeGit.location); return false;">Pull/Push</button>
 	<div id="git_branch">
-		<span>Branch: </span><select id="git_branches"></select>
+		<span>Branch: </span><span class="branch"></span>
 	</div>
 </header>
 
