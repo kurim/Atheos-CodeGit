@@ -1193,7 +1193,7 @@
 		},
 
 		setBranch: function(branch) {
-			$('.git_area .branch').text(branch);
+			$('#git_branch .branch').text(branch);
 		},
 
 		addStatusIcon: function() {
